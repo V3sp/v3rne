@@ -47,6 +47,7 @@ Cel: codzienna praca bez zaglądania do bazy i terminala.
 - [x] Widok projektu: plan, Agent Docs, lista priorytetów, Kanban z przeciąganiem
 - [x] Wyszukiwarka i filtry zadań
 - [x] Drawer zadania: komentarze, wątpliwości, commity, załączniki, historia
+- [x] Podgląd planu z formatowaniem Markdown i treścią sekcji
 - [x] Inbox wątpliwości i statystyki
 - [x] Konfigurator: aktywność projektów, skaner, edycja projektu, adres MCP
 - [x] Maskotka i identyfikacja V3rne
