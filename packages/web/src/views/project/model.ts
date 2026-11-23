@@ -3,7 +3,7 @@ import { API_BASE } from "../../api/client";
 import type { GitCommit, ProjectWithGit } from "../../api/types";
 import { summarizeProgress, type ProgressSummary } from "../../lib/format";
 import { KANBAN_STATUSES, PRIORITY_META, STATUS_META, STATUS_ORDER } from "../../lib/status";
-import type { PlanDetail } from "./api";
+import type { PlanDetail, PlanFileDetail, PlanHeading } from "./api";
 
 export type KanbanStatus = Extract<Status, "ready" | "in_progress" | "needs_input" | "done">;
 
@@ -116,6 +116,8 @@ export interface PlanSectionEntry {
   file: string;
   title: string;
   level: 1 | 2 | 3;
+  /** Markdown body of the section; `null` when it is missing or blank. */
+  body: string | null;
 }
 
 export function listPlanSections(plan: Pick<PlanDetail, "files">): PlanSectionEntry[] {
@@ -125,8 +127,43 @@ export function listPlanSections(plan: Pick<PlanDetail, "files">): PlanSectionEn
       file: file.path,
       title: heading.title,
       level: heading.level,
+      body: sectionBody(heading),
     })),
   );
+}
+
+/** Blank or missing section content counts as "no content"; the markdown itself is returned untouched. */
+export function sectionBody(heading: Pick<PlanHeading, "content">): string | null {
+  const { content } = heading;
+  return typeof content === "string" && content.trim() !== "" ? content : null;
+}
+
+/** Explains an empty section list: a file that failed to parse is not the same as a plan without headings. */
+export function planSectionsEmptyMessage(plan: Pick<PlanDetail, "files">): string {
+  return plan.files.some((file) => file.error)
+    ? "Nie udało się odczytać sekcji planu."
+    : "Brak sekcji w plan.md.";
+}
+
+/** Only existing files get tabs, and only when there is a real choice between several of them. */
+export function visiblePlanFileTabs(files: readonly PlanFileDetail[]): PlanFileDetail[] {
+  const existing = files.filter((file) => file.exists);
+  return existing.length > 1 ? existing : [];
+}
+
+/** Keeps the selected file while it is still listed; otherwise falls back to the first existing file. */
+export function pickActivePlanFile(files: readonly PlanFileDetail[], selectedPath: string | null): PlanFileDetail | null {
+  const existing = files.filter((file) => file.exists);
+  const selected = selectedPath === null ? undefined : existing.find((file) => file.path === selectedPath);
+  return selected ?? existing[0] ?? files[0] ?? null;
+}
+
+/** Why a file cannot be shown as markdown; `null` means its content is ready to render. */
+export function planFileContentMessage(file: Pick<PlanFileDetail, "exists" | "content">): string | null {
+  if (!file.exists) return "Plik nie istnieje w repozytorium.";
+  if (typeof file.content !== "string") return "Serwer nie zwrócił treści pliku.";
+  if (file.content.trim() === "") return "Plik jest pusty.";
+  return null;
 }
 
 export interface SectionStats {

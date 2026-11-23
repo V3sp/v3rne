@@ -12,6 +12,10 @@ export interface PlanHeading {
   slug: string;
   /** 1-based line number in the source file. */
   line: number;
+  /** Markdown of the section body, without its own heading line. Optional until the server sends it. */
+  content?: string;
+  /** 1-based last line of the section. Optional until the server sends it. */
+  endLine?: number;
 }
 
 /** The server's plan response carries headings and hashes; the shared mirror in `api/types.ts` omits them. */
@@ -19,6 +23,8 @@ export interface PlanFileDetail extends PlanFileState {
   hash: string | null;
   storedHash: string | null;
   headings: PlanHeading[];
+  /** Raw markdown of the whole file; `null` when the server could not read it. Optional until the server sends it. */
+  content?: string | null;
 }
 
 export interface PlanDetail {

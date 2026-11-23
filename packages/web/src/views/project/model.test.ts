@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Attachment, Comment, Task, TaskEvent } from "@v3rne/shared";
 import type { GitCommit, ProjectWithGit } from "../../api/types";
+import type { PlanFileDetail } from "./api";
 import {
   ATTACHMENT_ACCEPT,
   INITIAL_TASK_FILTERS,
@@ -25,10 +26,15 @@ import {
   newestTaskEventsFirst,
   parsePriority,
   parseStatus,
+  pickActivePlanFile,
+  planFileContentMessage,
+  planSectionsEmptyMessage,
+  sectionBody,
   splitSearchTerms,
   toggleFilterValue,
   sectionStats,
   snapshotCommits,
+  visiblePlanFileTabs,
 } from "./model";
 
 function makeTask(overrides: Partial<Task> & Pick<Task, "code">): Task {
@@ -302,6 +308,80 @@ describe("listPlanSections and sectionStats", () => {
       progress: { done: 0, total: 0, percent: 0 },
       needsDecision: false,
     });
+  });
+});
+
+describe("plan file view", () => {
+  function makeFile(overrides: Partial<PlanFileDetail> & Pick<PlanFileDetail, "path">): PlanFileDetail {
+    return {
+      origin: "file",
+      exists: true,
+      driftStatus: "clean",
+      hash: null,
+      storedHash: null,
+      headings: [],
+      ...overrides,
+    };
+  }
+
+  test("file tabs appear only when several existing files can be chosen", () => {
+    const plan = makeFile({ path: "plan.md" });
+    const docs = makeFile({ path: "docs/phase.md" });
+    const missing = makeFile({ path: "docs/old.md", exists: false });
+    expect(visiblePlanFileTabs([plan, docs, missing]).map((file) => file.path)).toEqual([
+      "plan.md",
+      "docs/phase.md",
+    ]);
+    expect(visiblePlanFileTabs([plan, missing])).toEqual([]);
+  });
+
+  test("active file keeps the selection while it exists, otherwise falls back to the first existing one", () => {
+    const missing = makeFile({ path: "a.md", exists: false });
+    const plan = makeFile({ path: "plan.md" });
+    const docs = makeFile({ path: "docs/phase.md" });
+    expect(pickActivePlanFile([missing, plan, docs], "docs/phase.md")?.path).toBe("docs/phase.md");
+    expect(pickActivePlanFile([missing, plan, docs], "a.md")?.path).toBe("plan.md");
+    expect(pickActivePlanFile([missing, plan, docs], "gone.md")?.path).toBe("plan.md");
+    expect(pickActivePlanFile([missing], null)?.path).toBe("a.md");
+    expect(pickActivePlanFile([], null)).toBeNull();
+  });
+
+  test("a blank or missing section body counts as no content", () => {
+    expect(sectionBody({})).toBeNull();
+    expect(sectionBody({ content: "" })).toBeNull();
+    expect(sectionBody({ content: " \n\t" })).toBeNull();
+    expect(sectionBody({ content: "- [ ] krok\n" })).toBe("- [ ] krok\n");
+  });
+
+  test("listPlanSections carries each section body", () => {
+    const sections = listPlanSections({
+      files: [
+        makeFile({
+          path: "plan.md",
+          headings: [
+            { level: 2, title: "Cel", slug: "cel", line: 1, content: "Opis celu." },
+            { level: 2, title: "Pusta", slug: "pusta", line: 5, content: "  " },
+            { level: 2, title: "Bez pola", slug: "bez", line: 9 },
+          ],
+        }),
+      ],
+    });
+    expect(sections.map((section) => section.body)).toEqual(["Opis celu.", null, null]);
+  });
+
+  test("an empty section list explains a parse failure differently from a plan without headings", () => {
+    expect(planSectionsEmptyMessage({ files: [makeFile({ path: "plan.md" })] })).toBe("Brak sekcji w plan.md.");
+    expect(
+      planSectionsEmptyMessage({ files: [makeFile({ path: "plan.md", error: "invalid utf-8" })] }),
+    ).toBe("Nie udało się odczytać sekcji planu.");
+  });
+
+  test("full-file content states: missing file, absent content, empty file, readable file", () => {
+    expect(planFileContentMessage({ exists: false, content: null })).toBe("Plik nie istnieje w repozytorium.");
+    expect(planFileContentMessage({ exists: true })).toBe("Serwer nie zwrócił treści pliku.");
+    expect(planFileContentMessage({ exists: true, content: null })).toBe("Serwer nie zwrócił treści pliku.");
+    expect(planFileContentMessage({ exists: true, content: "  \n" })).toBe("Plik jest pusty.");
+    expect(planFileContentMessage({ exists: true, content: "# Plan" })).toBeNull();
   });
 });
 

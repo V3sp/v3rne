@@ -6,6 +6,14 @@ Lekki, lokalny system typu Mission Control do monitorowania projektów programis
 
 Repozytoria są tylko do odczytu. Zadania, komentarze, wątpliwości i załączniki żyją w SQLite wewnątrz portalu, a agenci komunikują się przez MCP (`/mcp`).
 
+## Plan projektu w portalu
+
+Plany (`plan.md` i pliki z `plan_dirs`) są widoczne w zakładce **Plan** widoku projektu:
+
+- **Sekcje** — lista nagłówków z postępem zadań; kliknięcie rozwija treść sekcji z pliku i filtruje zadania.
+- **Cały plik** — pełny plan renderowany jako Markdown (nagłówki, listy zadań, tabele, kod).
+- Przyciski „Kopiuj prompt” i zatwierdzanie dryfu działają w obu widokach.
+
 ## Szybki start z danymi demo
 
 ```bash

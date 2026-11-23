@@ -7,6 +7,17 @@ export interface PlanHeading {
   slug: string;
   /** 1-based line number in the source file. */
   line: number;
+  /** 1-based number of the section's last non-blank line; equal to `line` for an empty section. */
+  endLine: number;
+  /** Section markdown without the heading line, trimmed; an empty string when there is no body. */
+  content: string;
+}
+
+interface HeadingSeed {
+  level: PlanHeadingLevel;
+  title: string;
+  slug: string;
+  line: number;
 }
 
 const FENCE_REGEX = /^ {0,3}(`{3,}|~{3,})/;
@@ -16,10 +27,12 @@ const MAX_LEVEL: PlanHeadingLevel = 3;
 /**
  * Returns headings in document order. The `level` field carries the nesting,
  * so callers can render a tree without a nested structure.
+ * Each heading also carries the content of its section, which runs until the
+ * next heading of the same or a higher level (subsections stay inside).
  * Headings inside fenced code blocks and levels deeper than `###` are ignored.
  */
 export function parseMarkdownHeadings(content: string): PlanHeading[] {
-  const headings: PlanHeading[] = [];
+  const seeds: HeadingSeed[] = [];
   let openFence: { char: string; length: number } | null = null;
 
   const lines = content.split("\n");
@@ -49,7 +62,7 @@ export function parseMarkdownHeadings(content: string): PlanHeading[] {
     const title = (headingMatch[2] ?? "").trim();
     if (!title) continue;
 
-    headings.push({
+    seeds.push({
       level: level as PlanHeadingLevel,
       title,
       slug: slugifyHeading(title),
@@ -57,7 +70,26 @@ export function parseMarkdownHeadings(content: string): PlanHeading[] {
     });
   }
 
-  return headings;
+  return seeds.map((seed, seedIndex) => {
+    const next = seeds.find(
+      (candidate, candidateIndex) => candidateIndex > seedIndex && candidate.level <= seed.level,
+    );
+    // 0-based index of the first body line is `seed.line`; the body ends before the next heading.
+    const body = lines
+      .slice(seed.line, next ? next.line - 1 : lines.length)
+      .map((line) => line.replace(/\r$/, ""));
+
+    let lastNonBlank = -1;
+    for (let index = 0; index < body.length; index += 1) {
+      if ((body[index] ?? "").trim().length > 0) lastNonBlank = index;
+    }
+
+    return {
+      ...seed,
+      endLine: lastNonBlank === -1 ? seed.line : seed.line + lastNonBlank + 1,
+      content: body.join("\n").trim(),
+    };
+  });
 }
 
 /**

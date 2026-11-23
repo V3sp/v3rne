@@ -23,8 +23,9 @@ Tool errors: `{ "isError": true, "content": [{ "type": "text", "text": "<code>: 
   `total` = backlog+ready+in_progress+needs_input.
 
 `get_project_context(project_id?: string, cwd?: string)` — resolves by id or by `cwd` (longest `workspace_root+relPath` prefix wins).
-  -> `{project:{...summary,agentDocs:string[]}, plan:{available,repoPath,files:[{path,origin,exists,hash,storedHash,driftStatus,headings:[{level,title,slug,line}]}],truncated,error?}, worktrees:[{path,branch}], git:{snapshotAvailable,...}|{snapshotAvailable:false}, board:{statuses,total}}`
+  -> `{project:{...summary,agentDocs:string[]}, plan:{available,repoPath,files:[{path,origin,exists,hash,storedHash,driftStatus,headings:[{level,title,slug,line,endLine,content}],truncated,error?}],worktrees:[{path,branch}], git:{snapshotAvailable,...}|{snapshotAvailable:false}, board:{statuses,total}}`
   `origin` = `file|dir` (explicit `planFiles` vs a file found in `planDirs`). `truncated` = the directory scan hit its 200-file limit.
+  `heading.content` = section markdown without the heading line, from the next line until the next heading of the same or a higher level (subsections included), trimmed; `endLine` = last non-blank line of that section (`line` for an empty section).
   `driftStatus` = `clean|untracked|drift|missing|error`. Git fields come from the in-memory snapshot; without a poller/refresh run only `snapshotAvailable:false` is returned.
 
 `list_tasks(project_id: string, status?: Status, priority?: Priority)`
@@ -55,7 +56,7 @@ Projects
 `PATCH /projects/:id` `{name?,active?,planFiles?,planDirs?,agentDocs?,codePrefix?,relPath?}` -> `Project`; 409 `code_prefix_locked` (tasks exist); `relPath` change clears cached snapshot.
 `Project.planDirs` is the effective list and `planDirsOverride` tells whether it comes from the row (true) or `defaults.plan_dirs` (false). `planDirs: null` on POST/PATCH stores NULL, i.e. falls back to the config default.
 `POST /projects/:id/refresh` -> `GitSnapshot` (200 even when `snapshot.error`).
-`GET /projects/:id/plan` -> `{projectId,files:[{path,origin,exists,hash,storedHash,driftStatus,headings,error?}],drift,truncated}`.
+`GET /projects/:id/plan` -> `{projectId,files:[{path,origin,exists,content,hash,storedHash,driftStatus,headings:[{level,title,slug,line,endLine,content}],error?}],drift,truncated}`. `files[].content` = raw markdown (`null` when missing); `headings[].content`/`endLine` as in MCP `get_project_context`.
 `POST /projects/:id/plan/ack-drift` -> `{projectId,files,drift:false,truncated}` (writes current hashes for every resolved file, prunes removed ones).
 `GET /projects/:id/docs` -> `{projectId,files:[{path,exists,content,error?}]}` (agent docs only, reads `agentDocs` as before).
 `POST /discovery/scan` -> `{repos:[{relPath,name,alreadyRegistered}]}` (never registers).
@@ -110,6 +111,7 @@ Projects are **not** in config.yaml; they live in SQLite (UI configurator or `PO
 - Claim is a 3-attempt CAS loop; concurrent claim of the same row is retried, never double-assigned.
 - `backlog` is not claimable; move it to `ready` first (`update_task`).
 - `plan.md`/`PLAN.md` are read once (case-insensitive filesystems); `storedHash` is keyed by the path string used in `ack-drift`.
+- Plan responses carry the whole file in `files[].content` (raw, CRLF preserved) and each section body in `headings[].content` (LF, subsections included, ends before the next heading of the same or higher level). Hashes are unaffected by these fields.
 - Plan sources = explicit `planFiles` (always, even when missing) + all `*.md` under `plan_dirs` (recursive, depth 3). `plan_dir_exclude` names are skipped at every level, so `context/archive/*.md` is invisible; files outside the dirs (e.g. root `README.md`) are not plan files. Directory symlinks are not followed. The scan stops at 200 files and then `truncated=true`.
 - `ack-drift` writes hashes for every resolved file, not only `planFiles`, so drift of a `plan_dirs` file clears normally. Changing `planFiles`/`planDirs` prunes hashes of files that are no longer resolved.
 - Drift compares SHA-256 of LF-normalized content; no stored hash = `untracked`, missing file = `missing` (never `drift`).

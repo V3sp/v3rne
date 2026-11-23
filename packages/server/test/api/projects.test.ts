@@ -433,6 +433,41 @@ describe("projects API", () => {
     expect(after.files[0]?.driftStatus).toBe("clean");
   });
 
+  test("GET plan returns raw file content and per-section bodies", async () => {
+    await initRepo("repos/alpha");
+    const plan = [
+      "# Plan",
+      "",
+      "## Faza 1",
+      "Treść fazy.",
+      "",
+      "### Zadanie",
+      "- punkt",
+      "",
+      "## Faza 2",
+    ].join("\n");
+    await writeWorkspaceFile("repos/alpha/plan.md", plan);
+    await createProjectOK({ planFiles: ["plan.md", "docs/PRD.md"] });
+
+    const state = await json<PlanState>(await api("GET", "/projects/alpha/plan"));
+
+    const file = state.files[0]!;
+    expect(file.content).toBe(plan);
+
+    const faza1 = file.headings.find((heading) => heading.title === "Faza 1")!;
+    expect(faza1.content).toBe("Treść fazy.\n\n### Zadanie\n- punkt");
+    expect(faza1.endLine).toBe(7);
+
+    expect(file.headings.find((heading) => heading.title === "Faza 2")).toMatchObject({
+      line: 9,
+      endLine: 9,
+      content: "",
+    });
+
+    expect(state.files[1]?.exists).toBe(false);
+    expect(state.files[1]?.content).toBeNull();
+  });
+
   test("PATCH planFiles drops hashes of removed plan files", async () => {
     await initRepo("repos/alpha");
     await writeWorkspaceFile("repos/alpha/plan.md", "# Plan\n");

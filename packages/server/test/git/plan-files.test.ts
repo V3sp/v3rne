@@ -69,6 +69,26 @@ describe("readPlanFiles", () => {
       await repo.cleanup();
     }
   });
+
+  test("returns the raw file and section bodies for CRLF files", async () => {
+    repo = await createTempRepo();
+    try {
+      const content = "# Plan\r\n\r\n## A\r\nTreść A\r\n\r\n## B\r\n";
+      await repo.write("plan.md", content);
+
+      const [file] = await readPlanFiles(repo.dir, ["plan.md"]);
+      expect(file?.content).toBe(content);
+      expect(file?.headings[1]).toMatchObject({
+        title: "A",
+        line: 3,
+        endLine: 4,
+        content: "Treść A",
+      });
+      expect(file?.headings[2]).toMatchObject({ title: "B", endLine: 6, content: "" });
+    } finally {
+      await repo.cleanup();
+    }
+  });
 });
 
 describe("validateRelativePath", () => {

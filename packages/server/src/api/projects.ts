@@ -34,6 +34,8 @@ export interface PlanFileState {
   /** `file` for an explicit `planFiles` entry, `dir` for a file discovered in `planDirs`. */
   origin: PlanFileOrigin;
   exists: boolean;
+  /** Raw markdown as stored on disk, `null` when the file does not exist. */
+  content: string | null;
   /** Current SHA-256 of the file on disk, `null` when missing or unreadable. */
   hash: string | null;
   /** Last acknowledged hash from `projects.plan_hashes_json`. */
@@ -630,6 +632,7 @@ function describePlanFile(
     path: result.path,
     origin,
     exists: result.exists,
+    content: result.content,
     hash: result.hash,
     storedHash,
     headings: result.headings,
