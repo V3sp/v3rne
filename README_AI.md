@@ -1,6 +1,6 @@
 # V3rne — AI usage reference
 
-For AI agents consuming this service. Humans: README.md. Working on this repo: docs/status-mvp.md.
+For AI agents consuming this service. Humans: README.md. Working on this repo: plan.md.
 
 ## Meta
 Service V3rne (repo `agent-board`; local Mission Control for AI-assisted repos). Runtime bun 1.4 + TS strict; Hono; SQLite `bun:sqlite` (WAL, FK on); React+Vite UI served by Hono.
@@ -142,6 +142,6 @@ add a repo: `POST /api/v1/discovery/scan` then `POST /api/v1/projects` (or UI "D
 pause a repo: `PATCH /api/v1/projects/<id> {active:false}`
 
 ## More
-README.md (human quick start, local + Docker); docs/status-mvp.md (scope, deviations, out-of-MVP); docs/wsad-do-analizy.md (open architecture questions);
+README.md (human quick start, local + Docker); plan.md (roadmap and scope); docs/wsad-do-analizy.md (open architecture questions);
 packages/shared (types + Zod), packages/server/src/{api,db,git,mcp}, packages/server/scripts/seed-demo.ts (demo workspace);
 tests: `bun test` (server+shared), `bun run test:web`.
