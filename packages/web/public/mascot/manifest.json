@@ -1,0 +1,20 @@
+[
+  {
+    "id": "hello",
+    "file": "hello.png",
+    "label": "HELLO!",
+    "usage": "Pusty Radar Projektów (brak repozytoriów) oraz pusty Inbox wątpliwości."
+  },
+  {
+    "id": "sprint",
+    "file": "sprint.png",
+    "label": "SPRINT!",
+    "usage": "Statystyki z niezerowym velocity — tempo pracy w ostatnich tygodniach."
+  },
+  {
+    "id": "zzz",
+    "file": "zzz.png",
+    "label": "ZzZ...",
+    "usage": "Brak ukończonych zadań w ostatnich tygodniach (pusty wykres velocity)."
+  }
+]

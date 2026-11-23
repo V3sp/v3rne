@@ -1,0 +1,3 @@
+[test]
+# `bun test` ładuje .env z katalogu głównego; testy muszą mieć własny, izolowany workspace.
+preload = ["./packages/server/test/setup-env.ts"]

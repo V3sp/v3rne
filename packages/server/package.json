@@ -1,0 +1,21 @@
+{
+  "name": "@v3rne/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "start": "bun run src/index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@v3rne/shared": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "hono": "^4.6.0",
+    "yaml": "^2.5.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

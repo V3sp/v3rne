@@ -1,0 +1,8 @@
+node_modules
+**/node_modules
+data
+dist
+demo-workspace
+.git
+*.log
+.DS_Store

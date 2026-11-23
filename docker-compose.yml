@@ -1,0 +1,15 @@
+services:
+  agent-board:
+    build: .
+    container_name: v3rne
+    restart: unless-stopped
+    ports:
+      # Domyślnie tylko loopback. Ustaw V3RNE_BIND=0.0.0.0 w .env, aby wystawić na LAN
+      # (uwaga: brak uwierzytelniania — używaj tylko w zaufanej sieci).
+      - "${V3RNE_BIND:-127.0.0.1}:4321:4321"
+    environment:
+      - WORKSPACE_PATH=${WORKSPACE_PATH}
+      - DATA_DIR=/app/data
+    volumes:
+      - ./data:/app/data
+      - ${WORKSPACE_PATH}:${WORKSPACE_PATH}:ro
